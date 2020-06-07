@@ -3,3 +3,10 @@
 ################################################################################
 
 /FrameStore/FrameStore/bin/Debug/netcoreapp3.0
+/FrameStore/.vs/FrameStore/v16
+/FrameStore/FrameStore/obj
+/FrameStore/FrameStore.Data/bin/Debug/netcoreapp3.0
+/FrameStore/FrameStore.Data/obj
+/FrameStore/FrameStore.Service/bin/Debug/netcoreapp3.0
+/FrameStore/FrameStore.Service/obj
+/.vs
