@@ -10,3 +10,4 @@
 /FrameStore/FrameStore.Service/bin/Debug/netcoreapp3.0
 /FrameStore/FrameStore.Service/obj
 /.vs
+/FrameStore/.vs/FrameStore/config/applicationhost.config
