@@ -5,7 +5,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using CsvHelper;
+using EFCore.BulkExtensions;
 using FrameStore.Data.Migrations;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FrameStore.Data
@@ -24,34 +26,54 @@ namespace FrameStore.Data
 
             var csvData = GetData();
 
-            //Add materials
-            var materials = csvData.SelectMany(f => f.Material.Split(',')).Distinct().Select(g => new Material()
-            {
-                MaterialId = Guid.NewGuid(),
-                Name = g
-            }).ToList();
-
+            //Add materials to db
+            var materials = GetMaterialsFromCSVData(csvData);
             using (var db = serviceProvider.GetRequiredService<FrameStoreContext>())
             {
-                db.ChangeTracker.AutoDetectChangesEnabled = false;
-
                 db.Materials.AddRange(materials);
                 db.SaveChanges();
             }
 
+            //Add brands to db.
+            var brandsToAdd = GetBrandsFromCSVData(csvData, materials);
+            using (var db = serviceProvider.GetRequiredService<FrameStoreContext>())
+            {
+                db.Brands.AddRange(brandsToAdd);
+                db.SaveChanges();
+            }
+
+            //Add tracing radii for each frame using bulk insert extension.
+            using (var db = serviceProvider.GetRequiredService<FrameStoreContext>())
+            {
+                var frames = db.Frames
+                    .Include(f => f.Style.Collection.Brand)
+                    .ToList();
+                var tracingRadii = GetTracingRadii(frames, csvData);
+                db.BulkInsert(tracingRadii);
+            }
+        }
+
+        private static List<Material> GetMaterialsFromCSVData(List<CSVFrameData> csvData)
+        {
+            return csvData.SelectMany(f => f.Material.Split(',')).Distinct().Select(g => new Material()
+            {
+                MaterialId = Guid.NewGuid(),
+                Name = g
+            }).ToList();
+        }
+
+        private static List<Brand> GetBrandsFromCSVData(List<CSVFrameData> csvData, List<Material> materials)
+        {
             var brandsToAdd = new List<Brand>();
             csvData.GroupBy(x => x.BrandName).ToList().ForEach(t =>
             {
-                using (var db = serviceProvider.GetRequiredService<FrameStoreContext>())
-                {
-                    db.ChangeTracker.AutoDetectChangesEnabled = false;
-                    db.Brands.Add(AddBrand(t, materials));
-                    db.SaveChanges();
-                }
+                brandsToAdd.Add(GetBrands(t, materials));
             });
+
+            return brandsToAdd;
         }
 
-        private static Brand AddBrand(
+        private static Brand GetBrands(
            IGrouping<string, CSVFrameData> brandGrouping,
            List<Material> materials)
         {
@@ -64,7 +86,7 @@ namespace FrameStore.Data
             //Add collection to the brand
             brandGrouping.GroupBy(h => h.CollectionName).ToList().ForEach(y =>
             {
-                brand.Collections.Add(GetCollection(
+                brand.Collections.Add(GetCollections(
                     y,
                     brand,
                     materials));
@@ -73,7 +95,7 @@ namespace FrameStore.Data
             return brand;
         }
 
-        private static Collection GetCollection(
+        private static Collection GetCollections(
             IGrouping<string, CSVFrameData> brandCollectionGrouping,
             Brand brand,
             List<Material> materials)
@@ -89,7 +111,7 @@ namespace FrameStore.Data
             brandCollectionGrouping.GroupBy(c => c.StyleName).ToList().ForEach(s =>
             {
 
-                collection.Styles.Add(GetStyle(
+                collection.Styles.Add(GetStyles(
                     s,
                     collection,
                     materials));
@@ -98,7 +120,7 @@ namespace FrameStore.Data
             return collection;
         }
 
-        private static Style GetStyle(
+        private static Style GetStyles(
             IGrouping<string, CSVFrameData> styleGrouping,
             Collection collection,
             List<Material> materials)
@@ -124,7 +146,6 @@ namespace FrameStore.Data
                     StyleId = style.StyleId,
                 };
 
-                frame.TracingRadii.AddRange(GetTracingRadius(frame, f));
                 frame.Materials.AddRange(GetFrameMaterials(frame, f, materials));
                 style.Frames.Add(frame);
             });
@@ -154,23 +175,36 @@ namespace FrameStore.Data
             return result;
         }
 
-        private static List<FrameTracingRadii> GetTracingRadius(
-            Frame frame,
-            CSVFrameData frameData)
+        private static List<FrameTracingRadii> GetTracingRadii(List<Frame> frames, List<CSVFrameData> csvData)
         {
             var result = new List<FrameTracingRadii>();
-            if (!string.IsNullOrEmpty(frameData.TracingRadii))
+            var g = csvData.GroupBy(h => new { h.BrandName, h.CollectionName, h.StyleName, h.FrameColor });
+
+            frames.ForEach(frame =>
             {
-                var frameTracingRadii = frameData.TracingRadii.Split(',').Select(Convert.ToDouble).ToList();
-                for (var idx = 0; idx < frameTracingRadii.Count; idx++)
+                var frameData = csvData.AsParallel().FirstOrDefault(t => t.BrandName.Equals(frame.Style.Collection.Brand.Name) &&
+                                                      t.CollectionName.Equals(frame.Style.Collection.Name) &&
+                                                      t.StyleName.Equals(frame.Style.Name) &&
+                                                      t.FrameColor.Equals(frame.FrameColor) &&
+                                                      t.Horizontal.Equals(frame.Horizontal) &&
+                                                      t.Vertical.Equals(frame.Vertical) &&
+                                                      t.Bridge.Equals(frame.Bridge));
+
+                if (null != frameData && !string.IsNullOrEmpty(frameData.TracingRadii))
                 {
-                    result.Add(new FrameTracingRadii()
+                    var frameTracingRadii = frameData.TracingRadii.Split(',').Select(Convert.ToDouble).ToList();
+                    for (var idx = 0; idx < frameTracingRadii.Count; idx++)
                     {
-                        FrameId = frame.FrameId,
-                        Radius = frameTracingRadii[idx]
-                    });
+                        result.Add(new FrameTracingRadii()
+                        {
+                            FrameTracingRadiusId = Guid.NewGuid(),
+                            FrameId = frame.FrameId,
+                            Radius = frameTracingRadii[idx]
+                        });
+                    }
                 }
-            }
+            });
+
             return result;
         }
 
