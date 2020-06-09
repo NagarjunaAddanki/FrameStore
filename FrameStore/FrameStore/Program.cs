@@ -37,6 +37,11 @@ namespace FrameStore
 
             try
             {
+                using (var context = services.GetRequiredService<FrameStoreContext>())
+                {
+                    context.Database.EnsureCreated();
+                }
+
                 SeedData.Seed(services);
             }
             catch (Exception ex)
