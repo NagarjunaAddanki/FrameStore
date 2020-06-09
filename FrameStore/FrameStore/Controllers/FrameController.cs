@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
@@ -24,7 +25,6 @@ namespace FrameStore.Controllers
             _logger = logger;
         }
 
-        [HttpGet]
         public async Task<IActionResult> Index()
         {
             var data = await _frameDataService.GetFramesAsync();
@@ -52,6 +52,31 @@ namespace FrameStore.Controllers
 
             var frameDto = _mapper.Map<FrameViewModel>(frame);
             return View(frameDto);
+        }
+
+        public async Task<IActionResult> Delete(Guid? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var frame = await _frameDataService.GetFrameAsync(id.Value);
+            if (frame == null)
+            {
+                return NotFound();
+            }
+
+            var frameDto = _mapper.Map<FrameViewModel>(frame);
+            return View(frameDto);
+        }
+
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(Guid id)
+        {
+            await _frameDataService.DeleteFrame(id);
+            return RedirectToAction("Index");
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

@@ -1,30 +1,33 @@
 ﻿@model IEnumerable<FrameViewModel>
 <h2>Frame Collection</h2>
-<table class="table">
-    <thead>
+<table class="table table-striped">
+    <thead class="thead-dark">
     <tr>
-        <th>
+        <th scope="col">#</th>
+        <th scope="col">
             @Html.DisplayNameFor(model => model.SKU)
         </th>
-        <th>
+        <th scope="col">
             @Html.DisplayNameFor(model => model.Brand)
         </th>
-        <th>
+        <th scope="col">
             @Html.DisplayNameFor(model => model.Collection)
         </th>
-        <th>
+        <th scope="col">
             @Html.DisplayNameFor(model => model.Style)
         </th>
-        <th>
+        <th scope="col">
             @Html.DisplayNameFor(model => model.FrameColor)
         </th>
-        <th>Action</th>
+        <th scope="col">Action</th>
     </tr>
     </thead>
     <tbody>
-    @foreach (var item in Model)
-    {
+        @{int RowNo = 1;}
+        @foreach (var item in Model)
+        {
         <tr>
+            <td scope="row">@{RowNo++;} @RowNo</td>
             <td>
                 @Html.DisplayFor(modelItem => item.SKU)
             </td>
@@ -43,9 +46,10 @@
             <td>
                 <div class="btn-group">
                     <a class="btn btn-outline-primary btn-sm" asp-action="Details" asp-route-id="@item.FrameId">Details</a>
+                    <a class="btn btn-outline-danger btn-sm" asp-action="Delete" asp-route-id="@item.FrameId">Delete</a>
                 </div>
             </td>
         </tr>
-    }
+        }
     </tbody>
 </table>
