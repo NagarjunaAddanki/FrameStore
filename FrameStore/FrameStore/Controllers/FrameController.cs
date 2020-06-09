@@ -32,6 +32,27 @@ namespace FrameStore.Controllers
             return View(frameDtos);
         }
 
+        /// <summary>
+        /// Gets the details of the given frame from the store.
+        /// </summary>
+        /// <param name="id">Id of the frame being requested.</param>
+        /// <returns></returns>
+        public async Task<IActionResult> Details(Guid? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var frame = await _frameDataService.GetFrameAsync(id.Value);
+            if (frame == null)
+            {
+                return NotFound();
+            }
+
+            var frameDto = _mapper.Map<FrameViewModel>(frame);
+            return View(frameDto);
+        }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()

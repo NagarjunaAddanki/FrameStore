@@ -40,6 +40,11 @@
             <td>
                 @Html.DisplayFor(modelItem => item.FrameColor)
             </td>
+            <td>
+                <div class="btn-group">
+                    <a class="btn btn-outline-primary btn-sm" asp-action="Details" asp-route-id="@item.FrameId">Details</a>
+                </div>
+            </td>
         </tr>
     }
     </tbody>
