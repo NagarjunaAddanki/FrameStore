@@ -53,7 +53,7 @@
                 </a>
                 <div class="collapse" id="collapseMaterials">
                     <div class="card card-body">
-                        <ul class="list-group list-group-horizontal-md">
+                        <ul class="d-flex flex-wrap">
                             @foreach (var item in @Model.Materials)
                             {
                                 <li class="list-group-item">@Html.DisplayFor(modelItem => item.Name)</li>
@@ -71,8 +71,8 @@
                 </a>
                 <div class="collapse" id="collapseTracingRadii">
                     <div class="card card-body">
-                        <ul class="list-group">
-                            @foreach (var item in @Model.TracingRadii)
+                        <ul class="d-flex flex-wrap">
+                            @foreach (var item in @Model.TracingRadii.OrderBy(value=>value))
                             {
                                 <li class="list-group-item">@Html.DisplayFor(modelItem => item)</li>
                             }
