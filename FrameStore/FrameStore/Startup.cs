@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FrameStore.Data;
+using FrameStore.Service;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -26,6 +27,7 @@ namespace FrameStore
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllersWithViews();
+            services.AddScoped<IFrameDataService, FrameDataService>();
             services.AddDbContext<FrameStoreContext>(options =>
                 options.UseSqlServer(Configuration.GetConnectionString("FrameStoreConnection")), ServiceLifetime.Transient);
         }
