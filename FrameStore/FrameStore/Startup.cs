@@ -2,7 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using FrameStore.Data;
+using FrameStore.Profiles;
+using FrameStore.Service;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -26,6 +29,9 @@ namespace FrameStore
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllersWithViews();
+            IMapper mapper = GetMapperConfiguration().CreateMapper();
+            services.AddSingleton(mapper);
+            services.AddScoped<IFrameDataService, FrameDataService>();
             services.AddDbContext<FrameStoreContext>(options =>
                 options.UseSqlServer(Configuration.GetConnectionString("FrameStoreConnection")), ServiceLifetime.Transient);
         }
@@ -54,7 +60,15 @@ namespace FrameStore
             {
                 endpoints.MapControllerRoute(
                     name: "default",
-                    pattern: "{controller=Home}/{action=Index}/{id?}");
+                    pattern: "{controller=Frame}/{action=Index}/{id?}");
+            });
+        }
+
+        private MapperConfiguration GetMapperConfiguration()
+        {
+            return new MapperConfiguration(mc =>
+            {
+                mc.AddProfile(new FrameProfile());
             });
         }
     }
